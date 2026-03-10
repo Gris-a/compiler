@@ -1,0 +1,94 @@
+Start = Definition*;
+
+Definition = FunctionDeclaration
+           | FunctionDefinition
+           | VariableDefinition;
+
+
+VariableDeclaration = Type Identifier;
+VariableDefinition = VariableDeclaration ("=" Expression)? ";";
+
+
+FunctionDeclarationArguments = (VariableDeclaration ("," VariableDeclaration)*)?
+
+FunctionDeclaration = "func" Identifier "(" FunctionDeclarationArguments ")" "->" Type ";";
+FunctionDefinition  = "func" Identifier "(" FunctionDeclarationArguments ")" "->" Type ScopedStatement;
+
+
+PrimaryType = "int" | "uint"; 
+Type = PrimaryType ("*")*;
+
+
+PrimaryStatement = ScopedStatement
+                 | VariableDefinition
+                 | ReturnStatement
+                 | IfStatement
+                 | (Expression ";");
+
+ScopedStatement = "{" PrimaryStatement* "}"
+
+ReturnStatement = "return" Expression ";";
+
+IfStatement = "if" "(" Expression ")" ScopedStatement ElseStatement;
+ElseStatement = ""
+              | "else" IfStatement
+              | "else" ScopedStatement;
+
+
+Expression = AssignmentExpression
+           | Expression "," AssignmentExpression;
+
+AssignmentExpression = LogicalOrExpression
+                     | AssignmentExpression "=" LogicalOrExpression;
+
+LogicalOrExpression = LogicalAndExpression
+                    | LogicalOrExpression "||" LogicalAndExpression;
+
+LogicalAndExpression = OrExpression
+                     | LogicalAndExpression "&&" OrExpression;
+
+OrExpression = XorExpression
+             | OrExpression "|" XorExpression;
+
+XorExpression = AndExpression
+              | XorExpression "^" AndExpression;
+
+AndExpression = EqualityExpression
+              | AndExpression "&" EqualityExpression;
+
+EqualityExpression = RelationalExpression
+                   | EqualityExpression "==" RelationalExpression
+
+RelationalExpression = ShiftExpression
+                     | RelationalExpression "<" ShiftExpression
+
+ShiftExpression = AdditiveExpression
+                | ShiftExpression "<<" AdditiveExpression
+                | ShiftExpression ">>" AdditiveExpression;
+
+AdditiveExpression = MultiplicativeExpression
+                   | AdditiveExpression "+" MultiplicativeExpression
+                   | AdditiveExpression "-" MultiplicativeExpression;
+
+MultiplicativeExpression = PrefixExpression
+                         | MultiplicativeExpression "*" PrefixExpression
+                         | MultiplicativeExpression "/" PrefixExpression
+                         | MultiplicativeExpression "%" PrefixExpression;
+
+PrefixExpression = PostfixExpression
+                 | "*" PrefixExpression
+                 | "&" PrefixExpression
+                 | "!" PrefixExpression
+                 | "~" PrefixExpression
+                 | "+" PrefixExpression
+                 | "-" PrefixExpression
+                 | "++" PrefixExpression
+                 | "--" PrefixExpression;
+
+PostfixExpression = PrimaryExpression
+                  | PostfixExpression "[" Expression "]"
+                  | PostfixExpression "(" (Expression)? ")";
+
+PrimaryExpression = Identifier
+                  | Literal
+                  | "(" Expression ")";
