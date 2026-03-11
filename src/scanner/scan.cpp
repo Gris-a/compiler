@@ -4,7 +4,7 @@
 #include <charconv>
 #include <unordered_map>
 #include <queue>
-
+#include <iostream>
 namespace Scanner {
 
 struct Parser {
@@ -49,7 +49,7 @@ public:
         }
         
         auto [ptr, ec] = std::from_chars(begin, end, value, base);
-        if (ec != std::errc() || ptr == begin) return NoToken{};
+        if (ec != std::errc() || ptr == begin) return EOFToken{};
 
         pos = ptr - line.data();
         return (line[pos] == 'u')
@@ -61,7 +61,7 @@ public:
         auto check = [&line](size_t pos) -> bool {
             return (std::isalnum(line[pos]) || line[pos] == '_');
         };
-        if (!check(pos)) return NoToken{};
+        if (!check(pos) || std::isdigit(line[pos])) return EOFToken{};
 
         size_t current_pos = pos;
         while(check(current_pos)) ++current_pos;
@@ -126,7 +126,7 @@ private:
 
     Parser() {
         [&]<token... Ts>(TTuple<Ts...>) {
-            (add_token<Ts>(), ...);
+            (add_token<Ts>(),...);
         }(Keywords{});
     }
 
@@ -134,7 +134,7 @@ private:
         start_.clear();
     }
 
-    template <token T>
+    template<token T>
     void add_token() {
         Node *node = start();
         for (char ch : T::key) {
@@ -172,7 +172,7 @@ private:
 std::vector<TokenInfo> scan(std::ifstream &source) {
     std::vector<TokenInfo> tokens;
 
-    for (size_t line = 0; source; ++line) {
+    for (size_t line = 1; source; ++line) {
         std::string string; std::getline(source, string);
         for (size_t pos = 0; pos != string.size();) {
             Parser::skip_spaces(string, pos);
@@ -181,12 +181,12 @@ std::vector<TokenInfo> scan(std::ifstream &source) {
             Token token = Parser::parse(string, pos);
 
             if (!valid_token(token)) {
-                throw std::exception();
+                throw position;
             }
             tokens.emplace_back(position, token);
         }
     }
-    tokens.emplace_back(Position(0, 0), NoToken{});
+    tokens.emplace_back(Position(0, 0), EOFToken{});
 
     return tokens;
 }

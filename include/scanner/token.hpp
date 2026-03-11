@@ -5,22 +5,18 @@
 
 namespace Scanner {
 
-TOKEN(NoToken, void, "");
+TOKEN(EOFToken, void, "");
+#undef TOKEN
 
-using Tokens = Concat<Keywords, Literals>::Result;
-
-template<typename T>
-concept token = Contains<Tokens, T>::value;
-
-using Types = TTuple<VoidType, IntegerType, UnsignedType>;
+using Tokens = Concat<TTuple<EOFToken>, Concat<Keywords, Literals>::Result>::Result;
 
 template<typename T>
-concept type = Contains<Types, T>::value;
+concept token = type<T> || literal<T> || Contains<Tokens, T>::value;
 
-using Token = TTupleVariant<Concat<TTuple<NoToken>, Tokens>::Result>::Result;
+using Token = TTupleVariant<Tokens>::Result;
 
 inline bool valid_token(const Token &token) {
-    return !std::holds_alternative<NoToken>(token);
+    return !std::holds_alternative<EOFToken>(token);
 }
 
 struct TokenInfo {

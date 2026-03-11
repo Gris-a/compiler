@@ -23,11 +23,12 @@ PrimaryStatement = ScopedStatement
                  | VariableDefinition
                  | ReturnStatement
                  | IfStatement
-                 | (Expression ";");
+                 | (Expression ";")
+                 | ";";
 
 ScopedStatement = "{" PrimaryStatement* "}"
 
-ReturnStatement = "return" Expression ";";
+ReturnStatement = "return" (Expression)? ";";
 
 IfStatement = "if" "(" Expression ")" ScopedStatement ElseStatement;
 ElseStatement = ""
@@ -58,9 +59,13 @@ AndExpression = EqualityExpression
 
 EqualityExpression = RelationalExpression
                    | EqualityExpression "==" RelationalExpression
+                   | EqualityExpression "!=" RelationalExpression
 
 RelationalExpression = ShiftExpression
                      | RelationalExpression "<" ShiftExpression
+                     | RelationalExpression "<=" ShiftExpression
+                     | RelationalExpression ">" ShiftExpression
+                     | RelationalExpression ">=" ShiftExpression
 
 ShiftExpression = AdditiveExpression
                 | ShiftExpression "<<" AdditiveExpression

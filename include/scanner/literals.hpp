@@ -18,4 +18,7 @@ using Literals = TTuple
 , Unsigned
 >;
 
+template<typename T>
+concept literal = Contains<Literals, T>::value;
+
 };

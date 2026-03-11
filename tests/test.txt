@@ -1,0 +1,154 @@
+func empty() -> void;
+
+func one(int a) -> int;
+
+func two(int a, uint b) -> int*;
+
+func three(int* p, int q, uint* r) -> void;
+
+func many(int a, uint b, int* c, uint* d, int e) -> int;
+
+func empty() -> void {
+    int x = 0x4u;
+    int x = 1234u;
+    int x = 0b111;
+    ;
+    {}
+    ;
+}
+
+func one(int a) -> int {
+    int x;
+    int y = a + 10;
+    uint z = 5u;
+    int* ptr = &y;
+    *ptr = 42;
+    ptr[1] = 99;
+    int w = ptr[0] + ptr[2];
+    if (a > 0) {
+        return a;
+    } else {
+        return -a;
+    }
+}
+
+func two(int a, uint b) -> int* {
+    int local = a;
+    uint local2 = b;
+    int* p = &local;
+    uint* q = &local2;
+    if (p != 0) {
+        return p;
+    } else {
+        return 0;
+    }
+}
+
+func three(int* p, int q, uint* r) -> void {
+    p[0] = q;
+    *r = q;
+    int x = *p;
+    uint y = *r;
+    if (x > 0x4 && y > 0b1) {
+        return;
+    } else {
+        x = x + 1;
+    }
+}
+
+func many(int a, uint b, int* c, uint* d, int e) -> int {
+    int r1 = a + e;
+    uint r2 = b + *d;
+    int r3 = c[0] + c[1];
+    int r = r1 + r2 + r3;
+    if (r > 0) {
+        return r;
+    } else {
+        return -r;
+    }
+}
+
+func calls() -> int {
+    int a1 = 1;
+    int __b_d3_ = 2;
+    uint c = 3u;
+    int* pa = &a;
+    int* pb = &b;
+    uint* pc = &c;
+    (4);
+    int x = one(a);
+    int* y = two(b, c);
+    three(pa, x, pc);
+    int z = many(a, c, pb, pc, x);
+
+    int w = one(two(a, c)[0]) + one(*pb) + y[1] + *pa;
+
+    if (w > 0) {
+        return w;
+    } else {
+        return -w;
+    }
+}
+
+func huge() -> int {
+    int a = 1;
+    int b = 2;
+    int c = 3;
+    int d = 4;
+    int e = 5;
+    int f = 6;
+    int g = 7;
+    int h = 8;
+    int i = 9;
+    int j = 10;
+    int* p = &a;
+    int* q = &b;
+    uint* r = &c;
+
+    int x;
+    int y;
+    int z;
+    int w;
+
+    int cond1;
+    int cond2;
+    if (one(a) > two(b, c)[0]) {
+        cond1 = 1;
+    } else {
+        cond1 = 0;
+    }
+    if (p[0] != q[1]) {
+        cond2 = 2;
+    } else {
+        cond2 = 3;
+    }
+
+    int result = (((a + b) * (c - d)) / (e % f)) + ((g << 2) & (h | i)) ^ (~j) + (p[0] = q[1] + r[2]) * (--*p) + (++p[3]) + cond1 * cond2 + ( (x = a) , (y = b) , (z = c) , (w = d) );
+    result()[4](1, 2);
+    return result;
+}
+
+func main() -> int {
+    int a = 10;
+    int b = 20;
+    uint c = 30u;
+    int* pa = &a;
+    uint* pc = &c;
+
+    empty();
+    one(a);
+    two(b, c);
+    three(pa, a, pc);
+    many(a, c, pa, pc, b);
+
+    int res1 = calls();
+    int res2 = huge();
+
+    int final = res1 + res2;
+
+    if (final > 0) {
+        return final;
+    } else {
+        return -final;
+    }
+}

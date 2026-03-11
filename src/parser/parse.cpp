@@ -5,17 +5,21 @@
 namespace Parser {
 
 template<Scanner::token T, std::random_access_iterator Iterator>
-T expect_token(Iterator& iter) {
+T expect_token(Iterator &iter) {
     if (std::holds_alternative<T>(iter->token)) {
         return std::get<T>((iter++)->token);
     }
-    throw std::exception();
+    throw iter->pos;
 }
 
 template<Scanner::token T, std::random_access_iterator Iterator>
-bool peek_token(Iterator& iter) {
+bool peek_token(Iterator &iter) {
     return std::holds_alternative<T>(iter->token);
 }
+
+
+template<std::random_access_iterator Iterator>
+Expression parse_expression(Iterator &iter);
 
 
 template<std::random_access_iterator Iterator>
@@ -26,23 +30,19 @@ Variable parse_variable(Iterator &iter);
 
 
 template<std::random_access_iterator Iterator>
-Expression parse_expression(Iterator &iter);
-
-
-template<std::random_access_iterator Iterator>
 Scope parse_scope(Iterator &iter);
 
 template<std::random_access_iterator Iterator>
-Condition parse_else(Iterator& iter);
+Condition parse_else(Iterator &iter);
 
 template<std::random_access_iterator Iterator>
-Condition parse_if(Iterator& iter);
+Condition parse_if(Iterator &iter);
 
 template<std::random_access_iterator Iterator>
-Return parse_return(Iterator& iter);
+Return parse_return(Iterator &iter);
 
 template<std::random_access_iterator Iterator>
-Statement parse_statement(Iterator& iter);
+Statement parse_statement(Iterator &iter);
 
 
 template<std::random_access_iterator Iterator>
@@ -58,7 +58,189 @@ template<std::random_access_iterator Iterator>
 VariableDefinition parse_variable_definition(Iterator &iter);
 
 template<std::random_access_iterator Iterator>
-Definition parse_definition(Iterator& iter);
+Definition parse_definition(Iterator &iter);
+
+
+template<std::random_access_iterator Iterator>
+Expression parse_primary(Iterator &iter) {
+    return [&]<primary_expression... Expr>(TTuple<Expr...>) -> Expression {
+        return std::visit(
+            Overloaded{
+                [&]([[maybe_unused]] const typename Expr::Token &token) -> Expression {
+                    ++iter;
+                    return Expr{token.value};
+                }...,
+                [&]([[maybe_unused]] const Scanner::OpenBrace &token) -> Expression {
+                    auto expression = parse_expression(++iter);
+                    expect_token<Scanner::CloseBrace>(iter);
+
+                    return expression;   
+                },
+                [&]([[maybe_unused]] const Scanner::token auto &token) -> Expression {
+                    throw iter->pos;
+                }
+            },
+            iter->token
+        );
+    }(PrimaryExpressions{});
+}
+
+template<std::random_access_iterator Iterator>
+Expression parse_special(Iterator &iter) {
+    Expression expression = parse_primary(iter);
+
+    for (bool parse = true; parse;) {
+        std::visit(
+            Overloaded{
+                [&]([[maybe_unused]] const Scanner::OpenBrace &token) {
+                    std::vector<Expression> args;
+                    if (!peek_token<Scanner::CloseBrace>(++iter)) {
+                        --iter;
+                        do {
+                            args.emplace_back(parse_expression(++iter));
+                        } while (peek_token<Scanner::Comma>(iter));
+                    }
+                    expression = FunctionCall {
+                        std::make_unique<Expression>(std::move(expression)),
+                        std::move(args)
+                    };
+                    expect_token<Scanner::CloseBrace>(iter);
+                },
+                [&]([[maybe_unused]] const Scanner::OpenSquare &token) {
+                    expression = Index {
+                        std::make_unique<Expression>(std::move(expression)),
+                        std::make_unique<Expression>(parse_expression(++iter))
+                    };
+                    expect_token<Scanner::CloseSquare>(iter);
+                },
+                [&]([[maybe_unused]] const Scanner::token auto &token) {
+                    parse = false;
+                }
+            },
+            iter->token
+        );
+    }
+
+    return expression;
+}
+
+template<typename Function, binary_operation... Operation>
+auto parse_binary_expression = []<std::random_access_iterator Iterator>(Iterator &iter) -> Expression {
+    Expression expression = Function()(iter);
+
+    for (bool parse = true; parse;) {
+        std::visit(
+            Overloaded{
+                [&]([[maybe_unused]] const typename Operation::Token &token) -> void {
+                    expression = Operation {
+                        std::make_unique<Expression>(std::move(expression)),
+                        std::make_unique<Expression>(Function()(++iter))
+                    };
+                }...,
+                [&]([[maybe_unused]] const Scanner::token auto &token) -> void {
+                    parse = false;
+                }
+            },
+            iter->token
+        );
+    }
+
+    return expression;
+};
+
+template<std::random_access_iterator Iterator>
+Expression parse_unary_expression(Iterator &iter) {
+    return [&]<unary_operation... Operation>(TTuple<Operation...>) -> Expression {
+        return std::visit(
+            Overloaded{
+                [&]([[maybe_unused]] const typename Operation::Token &token) -> Expression {
+                    return Operation{std::make_unique<Expression>(parse_unary_expression(++iter))};
+                }...,
+                [&]([[maybe_unused]] const Scanner::token auto &token) -> Expression {
+                    return parse_special(iter);
+                }
+            },
+            iter->token
+        );
+    }(UnaryOperations{});
+};
+
+auto parse_unary = []<std::random_access_iterator Iterator>(Iterator &iter) -> Expression {
+    return parse_unary_expression(iter);
+};
+
+auto parse_factor = parse_binary_expression
+< decltype(parse_unary)
+, Multiplication
+, Division
+, Remainder
+>;
+
+auto parse_term = parse_binary_expression
+< decltype(parse_factor)
+, Addition
+, Subtraction
+>;
+
+auto parse_shift = parse_binary_expression
+< decltype(parse_term)
+, LeftShift
+, RightShift
+>;
+
+auto parse_comparison = parse_binary_expression
+< decltype(parse_shift)
+, Greater
+, GreaterEqual
+, Less
+, LessEqual
+>;
+
+inline auto parse_equality = parse_binary_expression
+< decltype(parse_comparison)
+, Equal
+, NotEqual
+>;
+
+auto parse_and = parse_binary_expression
+< decltype(parse_equality)
+, And
+>;
+
+auto parse_xor = parse_binary_expression
+< decltype(parse_and)
+, Xor
+>;
+
+auto parse_or = parse_binary_expression
+< decltype(parse_xor)
+, Or
+>;
+
+auto parse_logical_and = parse_binary_expression
+< decltype(parse_or)
+, AndLogical
+>;
+
+auto parse_logical_or = parse_binary_expression
+< decltype(parse_logical_and)
+, OrLogical
+>;
+
+auto parse_assign = parse_binary_expression
+< decltype(parse_logical_or)
+, Assign
+>;
+
+auto parse_comma = parse_binary_expression
+< decltype(parse_assign)
+, Comma
+>;
+
+template<std::random_access_iterator Iterator>
+Expression parse_expression(Iterator &iter) {
+    return parse_comma(iter);
+}
 
 
 template<std::random_access_iterator Iterator>
@@ -76,8 +258,8 @@ Type parse_type(Iterator &iter) {
             [&]([[maybe_unused]] const Scanner::UnsignedType &token) -> void {
                 ++iter, type = UnsignedType{};
             },
-            [&]([[maybe_unused]] const auto &token) -> void {
-                throw std::exception();
+            [&]([[maybe_unused]] const Scanner::token auto &token) -> void {
+                throw iter->pos;
             }
         },
         iter->token
@@ -86,10 +268,10 @@ Type parse_type(Iterator &iter) {
     for (bool read_modifier = true; read_modifier; ) {
         std::visit(
             Overloaded {
-                [&]([[maybe_unused]] const Scanner::Reference &token) -> void {
+                [&]([[maybe_unused]] const Scanner::Dereference &token) -> void {
                     ++iter, type = Pointer{std::make_unique<Type>(std::move(type))};
                 },
-                [&]([[maybe_unused]] const auto &token) -> void {
+                [&]([[maybe_unused]] const Scanner::token auto &token) -> void {
                     read_modifier = false;
                 }
             },
@@ -105,92 +287,9 @@ Variable parse_variable(Iterator &iter) {
     Variable variable;
     
     variable.type = parse_type(iter);
-    variable.identifier = expect_token<Scanner::Identifier>(iter).value;
+    variable.identifier.value = expect_token<Scanner::Identifier>(iter).value;
 
     return variable;
-}
-
-
-template<typename Function, typename... TokenToBinaryOperation>
-inline auto ParseBinaryExpression = []<typename Iterator>(Iterator& iter) {
-  auto old_pos = getCurrentPosition(begin, end);
-
-  auto left = Function()(begin, end, positions);
-
-  while (begin != end) {
-    auto are_operators_remain = std::visit(
-        overloaded{
-            ProcessBinaryOperator<TokenToBinaryOperation, Iterator, Function>{
-                begin, end, positions, std::move(left), old_pos
-            } ...,
-            []([[maybe_unused]] const Tokenization::Token auto& token) {
-              return false;
-            }
-        },
-        begin->token
-    );
-
-    if (!are_operators_remain) {
-      break;
-    }
-  }
-
-  return left;
-};
-
-
-inline auto parseFactor =
-  ParseBinaryExpression
-  < decltype(parseUnary)
-  , TokenToBinaryOperation<Tokenization::Star, Multiplication>
-  , TokenToBinaryOperation<Tokenization::Slash, Division>
-  , TokenToBinaryOperation<Tokenization::Percent, Remainder>
-  >;
-
-inline auto parseTerm =
-  ParseBinaryExpression
-  < decltype(parseFactor)
-  , TokenToBinaryOperation<Tokenization::Plus, Addition>
-  , TokenToBinaryOperation<Tokenization::Minus, Subtraction>
-  >;
-
-inline auto parseComparison =
-  ParseBinaryExpression
-  < decltype(parseTerm)
-  , TokenToBinaryOperation<Tokenization::Greater, Greater>
-  , TokenToBinaryOperation<Tokenization::GreaterEqual, GreaterEqual>
-  , TokenToBinaryOperation<Tokenization::Less, Less>
-  , TokenToBinaryOperation<Tokenization::LessEqual, LessEqual>
-  >;
-
-inline auto parseEquality =
-  ParseBinaryExpression
-  < decltype(parseComparison)
-  , TokenToBinaryOperation<Tokenization::Equal, Equal>
-  , TokenToBinaryOperation<Tokenization::NotEqual, NotEqual>
-  >;
-
-inline auto parseAnd =
-  ParseBinaryExpression
-  < decltype(parseEquality)
-  , TokenToBinaryOperation<Tokenization::And, And>
-  >;
-
-inline auto parseXor =
-  ParseBinaryExpression
-  < decltype(parseAnd)
-  , TokenToBinaryOperation<Tokenization::Xor, Xor>
-  >;
-
-inline auto parse_or =
-  ParseBinaryExpression
-  < decltype(parseXor)
-  , TokenToBinaryOperation<Tokenization::Or, Or>
-  >;
-
-template<std::random_access_iterator Iterator>
-Expression parse_expression([[maybe_unused]] Iterator &iter) {
-    return Expression{}; // TODO
 }
 
 
@@ -200,7 +299,9 @@ Scope parse_scope(Iterator &iter) {
     
     expect_token<Scanner::OpenFigure>(iter);
     while (!peek_token<Scanner::CloseFigure>(iter)) {
-        scope.statements.emplace_back(parse_statement(iter));
+        if (!peek_token<Scanner::Semicolon>(iter)) {
+            scope.statements.emplace_back(parse_statement(iter));
+        } else ++iter;
     }
     ++iter;
 
@@ -208,7 +309,7 @@ Scope parse_scope(Iterator &iter) {
 }
 
 template<std::random_access_iterator Iterator>
-Condition parse_else(Iterator& iter) {
+Condition parse_else(Iterator &iter) {
     Condition statement;
     
     expect_token<Scanner::Else>(iter);
@@ -218,12 +319,10 @@ Condition parse_else(Iterator& iter) {
                 statement = parse_if(iter);
             },
             [&]([[maybe_unused]] const Scanner::OpenFigure &token) -> void {
-                statement.if_expression = nullptr;
                 statement.statement = parse_scope(iter);
-                statement.else_statement = nullptr;
             },
-            [&]([[maybe_unused]] const auto &token) -> void {
-                throw std::exception();
+            [&]([[maybe_unused]] const Scanner::token auto &token) -> void {
+                throw iter->pos;
             }
         },
         iter->token
@@ -233,7 +332,7 @@ Condition parse_else(Iterator& iter) {
 }
 
 template<std::random_access_iterator Iterator>
-Condition parse_if(Iterator& iter) {
+Condition parse_if(Iterator &iter) {
     Condition statement;
     
     expect_token<Scanner::If>(iter);
@@ -247,18 +346,20 @@ Condition parse_if(Iterator& iter) {
 }
 
 template<std::random_access_iterator Iterator>
-Return parse_return(Iterator& iter) {
+Return parse_return(Iterator &iter) {
     Return ret;
     
     expect_token<Scanner::Return>(iter);
-    ret.expression = parse_expression(iter);
+    if (!peek_token<Scanner::Semicolon>(iter)) {
+        ret.expression = std::make_unique<Expression>(parse_expression(iter));
+    }
     expect_token<Scanner::Semicolon>(iter);
 
     return ret;
 }
 
 template<std::random_access_iterator Iterator>
-Statement parse_statement(Iterator& iter) {
+Statement parse_statement(Iterator &iter) {
     return std::visit(
         Overloaded {
             [&]([[maybe_unused]] const Scanner::If &token) -> Statement {
@@ -273,7 +374,7 @@ Statement parse_statement(Iterator& iter) {
             [&]([[maybe_unused]] const Scanner::type auto &token) -> Statement {
                 return parse_variable_definition(iter);
             },
-            [&]([[maybe_unused]] const auto &token) -> Statement {
+            [&]([[maybe_unused]] const Scanner::token auto &token) -> Statement {
                 Statement statement = parse_expression(iter);
                 expect_token<Scanner::Semicolon>(iter);
                 
@@ -297,10 +398,10 @@ VariableDefinition parse_variable_definition(Iterator &iter) {
                 expect_token<Scanner::Semicolon>(iter);
             },
             [&]([[maybe_unused]] const Scanner::Semicolon &token) -> void {
-                ++iter, definition.initializer = nullptr;
+                ++iter;
             },
-            [&]([[maybe_unused]] const auto &token) -> void {
-                throw std::exception();
+            [&]([[maybe_unused]] const Scanner::token auto &token) -> void {
+                throw iter->pos;
             }
         },
         iter->token
@@ -314,24 +415,13 @@ std::vector<Variable> parse_function_arguments(Iterator &iter) {
     std::vector<Variable> arguments;
 
     expect_token<Scanner::OpenBrace>(iter);
-    for (bool parse_arguments = !peek_token<Scanner::CloseBrace>(iter); parse_arguments;) {
-        arguments.emplace_back(parse_variable(iter));
-        std::visit(
-            Overloaded {
-                [&]([[maybe_unused]] const Scanner::Comma &token) -> void {
-                    ++iter;
-                },
-                [&]([[maybe_unused]] const Scanner::CloseBrace &token) -> void {
-                    parse_arguments = false;
-                },
-                [&]([[maybe_unused]] const auto &token) -> void {
-                    throw std::exception();
-                }
-            },
-            iter->token
-        );
+    if (!peek_token<Scanner::CloseBrace>(iter)) {
+        --iter;
+        do {
+            arguments.emplace_back(parse_variable(++iter));
+        } while (peek_token<Scanner::Comma>(iter));
     }
-    ++iter;
+    expect_token<Scanner::CloseBrace>(iter);
 
     return arguments;
 }
@@ -341,7 +431,7 @@ FunctionDeclaration parse_function_declaration(Iterator &iter) {
     FunctionDeclaration declaration;
 
     expect_token<Scanner::Function>(iter);
-    declaration.name = expect_token<Scanner::Identifier>(iter).value;
+    declaration.name.value = expect_token<Scanner::Identifier>(iter).value;
     declaration.arguments = parse_function_arguments(iter);
     expect_token<Scanner::Arrow>(iter);
     declaration.return_type = parse_type(iter);
@@ -357,13 +447,13 @@ FunctionDefinition parse_function_definition(Iterator &iter) {
     std::visit(
         Overloaded {
             [&]([[maybe_unused]] const Scanner::Semicolon &token) -> void {
-                ++iter, definition.definition = nullptr;
+                ++iter;
             },
             [&]([[maybe_unused]] const Scanner::OpenFigure &token) -> void {
                 definition.definition = std::make_unique<Scope>(parse_scope(iter));
             },
-            [&]([[maybe_unused]] const auto &token) -> void {
-                throw std::exception();
+            [&]([[maybe_unused]] const Scanner::token auto &token) -> void {
+                throw iter->pos;
             }
         },
         iter->token
@@ -373,7 +463,7 @@ FunctionDefinition parse_function_definition(Iterator &iter) {
 }
 
 template<std::random_access_iterator Iterator>
-Definition parse_definition(Iterator& iter) {
+Definition parse_definition(Iterator &iter) {
     return std::visit(
         Overloaded {
             [&]([[maybe_unused]] const Scanner::Function &token) -> Definition {
@@ -382,8 +472,8 @@ Definition parse_definition(Iterator& iter) {
             [&]([[maybe_unused]] const Scanner::type auto &token) -> Definition {
                 return parse_variable_definition(iter);
             },
-            [&]([[maybe_unused]] const auto &token) -> Definition {
-                throw std::exception();
+            [&]([[maybe_unused]] const Scanner::token auto &token) -> Definition {
+                throw iter->pos;
             }
         },
         iter->token

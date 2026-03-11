@@ -18,7 +18,7 @@ struct VariableDefinition {
 };
 
 struct Return {
-    Expression expression;
+    std::unique_ptr<Expression> expression;
 };
 
 struct Scope {

@@ -6,10 +6,10 @@
 
 namespace Scanner {
 
-template <typename T>
+template<typename T>
 struct TockenContainer { T value; };
 
-template <>
+template<>
 struct TockenContainer<void> {};
 
 #define TOKEN(name, value_type, keyword)            \

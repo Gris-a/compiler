@@ -7,7 +7,7 @@ namespace Parser {
 struct Definition;
 
 struct FunctionDeclaration {
-    std::string name;
+    Identifier name;
 
     Type return_type;
     std::vector<Variable> arguments;

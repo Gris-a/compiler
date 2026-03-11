@@ -9,6 +9,11 @@ TOKEN(VoidType, void, "void");
 TOKEN(IntegerType, void, "int");
 TOKEN(UnsignedType, void, "uint");
 
+using Types = TTuple<VoidType, IntegerType, UnsignedType>;
+
+template<typename T>
+concept type = Contains<Types, T>::value;
+
 TOKEN(If, void, "if");
 TOKEN(Else, void, "else");
 
@@ -46,7 +51,7 @@ TOKEN(NotEqual, void, "!=");
 TOKEN(Less, void, "<");
 TOKEN(LessEqual, void, "<=");
 
-TOKEN(Greater, void, "<");
+TOKEN(Greater, void, ">");
 TOKEN(GreaterEqual, void, ">=");
 
 TOKEN(NotLogical, void, "!");

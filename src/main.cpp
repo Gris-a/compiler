@@ -17,8 +17,11 @@ int main(int argc, char** argv) {
     setup_cli_parser();
     CLI11_PARSE(app, argc, argv);
 
-    std::ifstream file(filename);
-    auto tokens = Scanner::scan(file);
-    
-    auto definitions = Parser::parse(tokens);
+    try {
+        std::ifstream file(filename);
+        auto tokens = Scanner::scan(file);
+        auto definitions = Parser::parse(tokens);
+    } catch (Scanner::Position position) {
+        std::cout << position.line << ' ' << position.pos << '\n';
+    }
 }
