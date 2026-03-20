@@ -27,4 +27,6 @@ struct Definition : DefinitionVariant {
     using variant::variant;
 };
 
+using Program = std::vector<Definition>;
+
 };

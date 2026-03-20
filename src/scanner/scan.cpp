@@ -176,6 +176,7 @@ std::vector<TokenInfo> scan(std::ifstream &source) {
         std::string string; std::getline(source, string);
         for (size_t pos = 0; pos != string.size();) {
             Parser::skip_spaces(string, pos);
+            if (pos == string.size()) continue;
 
             Position position(line, pos);
             Token token = Parser::parse(string, pos);

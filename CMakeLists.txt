@@ -23,6 +23,5 @@ target_include_directories(scanner PUBLIC include)
 add_library(parser src/parser/parse.cpp)
 target_include_directories(parser PUBLIC include)
 
-
 add_executable(compiler src/main.cpp)
 target_link_libraries(compiler PRIVATE scanner parser CLI11::CLI11)

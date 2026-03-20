@@ -62,67 +62,10 @@ Definition parse_definition(Iterator &iter);
 
 
 template<std::random_access_iterator Iterator>
-Expression parse_primary(Iterator &iter) {
-    return [&]<primary_expression... Expr>(TTuple<Expr...>) -> Expression {
-        return std::visit(
-            Overloaded{
-                [&]([[maybe_unused]] const typename Expr::Token &token) -> Expression {
-                    ++iter;
-                    return Expr{token.value};
-                }...,
-                [&]([[maybe_unused]] const Scanner::OpenBrace &token) -> Expression {
-                    auto expression = parse_expression(++iter);
-                    expect_token<Scanner::CloseBrace>(iter);
-
-                    return expression;   
-                },
-                [&]([[maybe_unused]] const Scanner::token auto &token) -> Expression {
-                    throw iter->pos;
-                }
-            },
-            iter->token
-        );
-    }(PrimaryExpressions{});
-}
+Expression parse_primary(Iterator &iter);
 
 template<std::random_access_iterator Iterator>
-Expression parse_special(Iterator &iter) {
-    Expression expression = parse_primary(iter);
-
-    for (bool parse = true; parse;) {
-        std::visit(
-            Overloaded{
-                [&]([[maybe_unused]] const Scanner::OpenBrace &token) {
-                    std::vector<Expression> args;
-                    if (!peek_token<Scanner::CloseBrace>(++iter)) {
-                        --iter;
-                        do {
-                            args.emplace_back(parse_expression(++iter));
-                        } while (peek_token<Scanner::Comma>(iter));
-                    }
-                    expression = FunctionCall {
-                        std::make_unique<Expression>(std::move(expression)),
-                        std::move(args)
-                    };
-                    expect_token<Scanner::CloseBrace>(iter);
-                },
-                [&]([[maybe_unused]] const Scanner::OpenSquare &token) {
-                    expression = Index {
-                        std::make_unique<Expression>(std::move(expression)),
-                        std::make_unique<Expression>(parse_expression(++iter))
-                    };
-                    expect_token<Scanner::CloseSquare>(iter);
-                },
-                [&]([[maybe_unused]] const Scanner::token auto &token) {
-                    parse = false;
-                }
-            },
-            iter->token
-        );
-    }
-
-    return expression;
-}
+Expression parse_special(Iterator &iter);
 
 template<typename Function, binary_operation... Operation>
 auto parse_binary_expression = []<std::random_access_iterator Iterator>(Iterator &iter) -> Expression {
@@ -242,6 +185,68 @@ Expression parse_expression(Iterator &iter) {
     return parse_comma(iter);
 }
 
+template<std::random_access_iterator Iterator>
+Expression parse_special(Iterator &iter) {
+    Expression expression = parse_primary(iter);
+
+    for (bool parse = true; parse;) {
+        std::visit(
+            Overloaded{
+                [&]([[maybe_unused]] const Scanner::OpenBrace &token) {
+                    std::vector<Expression> args;
+                    if (!peek_token<Scanner::CloseBrace>(++iter)) {
+                        --iter;
+                        do {
+                            args.emplace_back(parse_assign(++iter));
+                        } while (peek_token<Scanner::Comma>(iter));
+                    }
+                    expression = FunctionCall {
+                        std::make_unique<Expression>(std::move(expression)),
+                        std::move(args)
+                    };
+                    expect_token<Scanner::CloseBrace>(iter);
+                },
+                [&]([[maybe_unused]] const Scanner::OpenSquare &token) {
+                    expression = Index {
+                        std::make_unique<Expression>(std::move(expression)),
+                        std::make_unique<Expression>(parse_expression(++iter))
+                    };
+                    expect_token<Scanner::CloseSquare>(iter);
+                },
+                [&]([[maybe_unused]] const Scanner::token auto &token) {
+                    parse = false;
+                }
+            },
+            iter->token
+        );
+    }
+
+    return expression;
+}
+
+template<std::random_access_iterator Iterator>
+Expression parse_primary(Iterator &iter) {
+    return [&]<primary_expression... Expr>(TTuple<Expr...>) -> Expression {
+        return std::visit(
+            Overloaded{
+                [&]([[maybe_unused]] const typename Expr::Token &token) -> Expression {
+                    ++iter;
+                    return Expr{token.value};
+                }...,
+                [&]([[maybe_unused]] const Scanner::OpenBrace &token) -> Expression {
+                    auto expression = parse_expression(++iter);
+                    expect_token<Scanner::CloseBrace>(iter);
+
+                    return expression;   
+                },
+                [&]([[maybe_unused]] const Scanner::token auto &token) -> Expression {
+                    throw iter->pos;
+                }
+            },
+            iter->token
+        );
+    }(PrimaryExpressions{});
+}
 
 template<std::random_access_iterator Iterator>
 Type parse_type(Iterator &iter) {
@@ -481,8 +486,8 @@ Definition parse_definition(Iterator &iter) {
 }
 
 
-std::vector<Definition> parse(const std::vector<Scanner::TokenInfo> &tokens) {
-    std::vector<Definition> definitions;
+Program parse(const std::vector<Scanner::TokenInfo> &tokens) {
+    Program definitions;
 
     auto iter = tokens.begin();
     while (Scanner::valid_token(iter->token)) {

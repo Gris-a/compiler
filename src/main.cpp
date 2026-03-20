@@ -4,6 +4,7 @@
 
 #include "scanner/scan.hpp"
 #include "parser/parse.hpp"
+#include "parser/print_vizitor.hpp"
 
 CLI::App app{"compiler"};
 
@@ -19,8 +20,13 @@ int main(int argc, char** argv) {
 
     try {
         std::ifstream file(filename);
-        auto tokens = Scanner::scan(file);
-        auto definitions = Parser::parse(tokens);
+        Parser::Program program = Parser::parse(Scanner::scan(file));
+        Parser::PrintVizitor vizitor;
+        vizitor.vizit(program);
+
+        std::ofstream out("dot.dot");
+        out << vizitor.get_dot();
+
     } catch (Scanner::Position position) {
         std::cout << position.line << ' ' << position.pos << '\n';
     }
