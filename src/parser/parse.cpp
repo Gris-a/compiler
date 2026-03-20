@@ -4,71 +4,58 @@
 
 namespace Parser {
 
-template<Scanner::token T, std::random_access_iterator Iterator>
-T expect_token(Iterator &iter) {
+using TokenIterator = std::vector<Scanner::TokenInfo>::const_iterator;
+
+template<Scanner::token T>
+T expect_token(TokenIterator &iter) {
     if (std::holds_alternative<T>(iter->token)) {
         return std::get<T>((iter++)->token);
     }
     throw iter->pos;
 }
 
-template<Scanner::token T, std::random_access_iterator Iterator>
-bool peek_token(Iterator &iter) {
+template<Scanner::token T>
+bool peek_token(TokenIterator &iter) {
     return std::holds_alternative<T>(iter->token);
 }
 
 
-template<std::random_access_iterator Iterator>
-Expression parse_expression(Iterator &iter);
+Expression parse_expression(TokenIterator &iter);
 
 
-template<std::random_access_iterator Iterator>
-Type parse_type(Iterator &iter);
+Type parse_type(TokenIterator &iter);
 
-template<std::random_access_iterator Iterator>
-Variable parse_variable(Iterator &iter);
+Variable parse_variable(TokenIterator &iter);
 
 
-template<std::random_access_iterator Iterator>
-Scope parse_scope(Iterator &iter);
+Scope parse_scope(TokenIterator &iter);
 
-template<std::random_access_iterator Iterator>
-Condition parse_else(Iterator &iter);
+Condition parse_else(TokenIterator &iter);
 
-template<std::random_access_iterator Iterator>
-Condition parse_if(Iterator &iter);
+Condition parse_if(TokenIterator &iter);
 
-template<std::random_access_iterator Iterator>
-Return parse_return(Iterator &iter);
+Return parse_return(TokenIterator &iter);
 
-template<std::random_access_iterator Iterator>
-Statement parse_statement(Iterator &iter);
+Statement parse_statement(TokenIterator &iter);
 
 
-template<std::random_access_iterator Iterator>
-std::vector<Variable> parse_function_arguments(Iterator &iter);
+std::vector<Variable> parse_function_arguments(TokenIterator &iter);
 
-template<std::random_access_iterator Iterator>
-FunctionDeclaration parse_function_declaration(Iterator &iter);
+FunctionDeclaration parse_function_declaration(TokenIterator &iter);
 
-template<std::random_access_iterator Iterator>
-FunctionDefinition parse_function_definition(Iterator &iter);
+FunctionDefinition parse_function_definition(TokenIterator &iter);
 
-template<std::random_access_iterator Iterator>
-VariableDefinition parse_variable_definition(Iterator &iter);
+VariableDefinition parse_variable_definition(TokenIterator &iter);
 
-template<std::random_access_iterator Iterator>
-Definition parse_definition(Iterator &iter);
+Definition parse_definition(TokenIterator &iter);
 
 
-template<std::random_access_iterator Iterator>
-Expression parse_primary(Iterator &iter);
+Expression parse_primary(TokenIterator &iter);
 
-template<std::random_access_iterator Iterator>
-Expression parse_special(Iterator &iter);
+Expression parse_special(TokenIterator &iter);
 
 template<typename Function, binary_operation... Operation>
-auto parse_binary_expression = []<std::random_access_iterator Iterator>(Iterator &iter) -> Expression {
+auto parse_binary_expression = [](TokenIterator &iter) -> Expression {
     Expression expression = Function()(iter);
 
     for (bool parse = true; parse;) {
@@ -91,8 +78,7 @@ auto parse_binary_expression = []<std::random_access_iterator Iterator>(Iterator
     return expression;
 };
 
-template<std::random_access_iterator Iterator>
-Expression parse_unary_expression(Iterator &iter) {
+Expression parse_unary_expression(TokenIterator &iter) {
     return [&]<unary_operation... Operation>(TTuple<Operation...>) -> Expression {
         return std::visit(
             Overloaded{
@@ -108,7 +94,7 @@ Expression parse_unary_expression(Iterator &iter) {
     }(UnaryOperations{});
 };
 
-auto parse_unary = []<std::random_access_iterator Iterator>(Iterator &iter) -> Expression {
+auto parse_unary = [](TokenIterator &iter) -> Expression {
     return parse_unary_expression(iter);
 };
 
@@ -180,13 +166,11 @@ auto parse_comma = parse_binary_expression
 , Comma
 >;
 
-template<std::random_access_iterator Iterator>
-Expression parse_expression(Iterator &iter) {
+Expression parse_expression(TokenIterator &iter) {
     return parse_comma(iter);
 }
 
-template<std::random_access_iterator Iterator>
-Expression parse_special(Iterator &iter) {
+Expression parse_special(TokenIterator &iter) {
     Expression expression = parse_primary(iter);
 
     for (bool parse = true; parse;) {
@@ -224,8 +208,7 @@ Expression parse_special(Iterator &iter) {
     return expression;
 }
 
-template<std::random_access_iterator Iterator>
-Expression parse_primary(Iterator &iter) {
+Expression parse_primary(TokenIterator &iter) {
     return [&]<primary_expression... Expr>(TTuple<Expr...>) -> Expression {
         return std::visit(
             Overloaded{
@@ -248,8 +231,7 @@ Expression parse_primary(Iterator &iter) {
     }(PrimaryExpressions{});
 }
 
-template<std::random_access_iterator Iterator>
-Type parse_type(Iterator &iter) {
+Type parse_type(TokenIterator &iter) {
     Type type;
 
     std::visit(
@@ -287,8 +269,7 @@ Type parse_type(Iterator &iter) {
     return type;
 }
 
-template<std::random_access_iterator Iterator>
-Variable parse_variable(Iterator &iter) {
+Variable parse_variable(TokenIterator &iter) {
     Variable variable;
     
     variable.type = parse_type(iter);
@@ -298,8 +279,7 @@ Variable parse_variable(Iterator &iter) {
 }
 
 
-template<std::random_access_iterator Iterator>
-Scope parse_scope(Iterator &iter) {
+Scope parse_scope(TokenIterator &iter) {
     Scope scope;
     
     expect_token<Scanner::OpenFigure>(iter);
@@ -313,8 +293,7 @@ Scope parse_scope(Iterator &iter) {
     return scope;
 }
 
-template<std::random_access_iterator Iterator>
-Condition parse_else(Iterator &iter) {
+Condition parse_else(TokenIterator &iter) {
     Condition statement;
     
     expect_token<Scanner::Else>(iter);
@@ -336,8 +315,7 @@ Condition parse_else(Iterator &iter) {
     return statement;
 }
 
-template<std::random_access_iterator Iterator>
-Condition parse_if(Iterator &iter) {
+Condition parse_if(TokenIterator &iter) {
     Condition statement;
     
     expect_token<Scanner::If>(iter);
@@ -350,8 +328,7 @@ Condition parse_if(Iterator &iter) {
     return statement;
 }
 
-template<std::random_access_iterator Iterator>
-Return parse_return(Iterator &iter) {
+Return parse_return(TokenIterator &iter) {
     Return ret;
     
     expect_token<Scanner::Return>(iter);
@@ -363,8 +340,7 @@ Return parse_return(Iterator &iter) {
     return ret;
 }
 
-template<std::random_access_iterator Iterator>
-Statement parse_statement(Iterator &iter) {
+Statement parse_statement(TokenIterator &iter) {
     return std::visit(
         Overloaded {
             [&]([[maybe_unused]] const Scanner::If &token) -> Statement {
@@ -391,8 +367,7 @@ Statement parse_statement(Iterator &iter) {
 }
 
 
-template<std::random_access_iterator Iterator>
-VariableDefinition parse_variable_definition(Iterator &iter) {
+VariableDefinition parse_variable_definition(TokenIterator &iter) {
     VariableDefinition definition;
 
     definition.variable = parse_variable(iter);
@@ -415,8 +390,7 @@ VariableDefinition parse_variable_definition(Iterator &iter) {
     return definition;
 }
 
-template<std::random_access_iterator Iterator>
-std::vector<Variable> parse_function_arguments(Iterator &iter) {
+std::vector<Variable> parse_function_arguments(TokenIterator &iter) {
     std::vector<Variable> arguments;
 
     expect_token<Scanner::OpenBrace>(iter);
@@ -431,8 +405,7 @@ std::vector<Variable> parse_function_arguments(Iterator &iter) {
     return arguments;
 }
 
-template<std::random_access_iterator Iterator>
-FunctionDeclaration parse_function_declaration(Iterator &iter) {
+FunctionDeclaration parse_function_declaration(TokenIterator &iter) {
     FunctionDeclaration declaration;
 
     expect_token<Scanner::Function>(iter);
@@ -444,8 +417,7 @@ FunctionDeclaration parse_function_declaration(Iterator &iter) {
     return declaration;
 }
 
-template<std::random_access_iterator Iterator>
-FunctionDefinition parse_function_definition(Iterator &iter) {
+FunctionDefinition parse_function_definition(TokenIterator &iter) {
     FunctionDefinition definition;
     
     definition.declaration = parse_function_declaration(iter);
@@ -467,8 +439,7 @@ FunctionDefinition parse_function_definition(Iterator &iter) {
     return definition;
 }
 
-template<std::random_access_iterator Iterator>
-Definition parse_definition(Iterator &iter) {
+Definition parse_definition(TokenIterator &iter) {
     return std::visit(
         Overloaded {
             [&]([[maybe_unused]] const Scanner::Function &token) -> Definition {
@@ -489,7 +460,7 @@ Definition parse_definition(Iterator &iter) {
 Program parse(const std::vector<Scanner::TokenInfo> &tokens) {
     Program definitions;
 
-    auto iter = tokens.begin();
+    TokenIterator iter = tokens.begin();
     while (Scanner::valid_token(iter->token)) {
         definitions.emplace_back(parse_definition(iter));
     }
