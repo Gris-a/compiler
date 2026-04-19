@@ -5,9 +5,6 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_compile_options(-Wall -Wextra -Wpedantic)
-add_compile_options(-fsanitize=address,undefined)
-
-add_link_options(-fsanitize=address,undefined)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -20,7 +17,8 @@ FetchContent_MakeAvailable(cli11)
 add_library(scanner src/scanner/scan.cpp)
 target_include_directories(scanner PUBLIC include)
 
-add_library(parser src/parser/parse.cpp)
+add_library(parser src/parser/parse.cpp src/parser/visitor/print_visitor.cpp)
+target_link_libraries(parser PUBLIC scanner)
 target_include_directories(parser PUBLIC include)
 
 add_executable(compiler src/main.cpp)

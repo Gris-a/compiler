@@ -15,7 +15,7 @@ FunctionDeclaration = "func" Identifier "(" FunctionDeclarationArguments ")" "->
 FunctionDefinition  = "func" Identifier "(" FunctionDeclarationArguments ")" "->" Type ScopedStatement;
 
 
-PrimaryType = "int" | "uint"; 
+PrimaryType = "int"; 
 Type = PrimaryType ("*")*;
 
 
@@ -91,7 +91,6 @@ PrefixExpression = PostfixExpression
                  | "--" PrefixExpression;
 
 PostfixExpression = PrimaryExpression
-                  | PostfixExpression "[" Expression "]"
                   | PostfixExpression "(" (Expression)? ")";
 
 PrimaryExpression = Identifier

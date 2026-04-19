@@ -238,7 +238,6 @@ Type parse_type(TokenIterator &iter) {
                 [&]([[maybe_unused]] const Scanner::Star &token) -> void {
                     ++iter;
                     type = Pointer{std::make_unique<Type>(std::move(type))};
-                    std::cout << "ptr\n";
                 },
                 [&]([[maybe_unused]] const Scanner::token auto &token) -> void {
                     read_modifier = false;
