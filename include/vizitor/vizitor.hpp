@@ -2,7 +2,9 @@
 
 #include "parser/definition.hpp"
 
-namespace Parser {
+namespace Vizitor {
+
+using namespace Parser;
 
 class Vizitor {
 public:
@@ -32,16 +34,13 @@ public:
 
     virtual void vizit(const Variable &variable) = 0;
 
-    virtual void vizit(const Identifier &ident) = 0;    
+    virtual void vizit(const Identifier &ident) = 0;
     virtual void vizit(const Integer &int_type) = 0;
-    virtual void vizit(const Unsigned &uint_type) = 0;
 
     virtual void vizit(const VoidType &type) = 0;
     virtual void vizit(const IntegerType &type) = 0;
-    virtual void vizit(const UnsignedType &type) = 0;
     virtual void vizit(const Pointer &type) = 0;
 
-    virtual void vizit(const Comma &binop) = 0;
     virtual void vizit(const Assign &binop) = 0;
     virtual void vizit(const Addition &binop) = 0;
     virtual void vizit(const Subtraction &binop) = 0;
@@ -71,8 +70,7 @@ public:
     virtual void vizit(const Increment &unop) = 0;
     virtual void vizit(const Decrement &unop) = 0;
 
-    virtual void vizit(const Index &index) = 0;
-    virtual void vizit(const FunctionCall &call) = 0;   
+    virtual void vizit(const FunctionCall &call) = 0;
 };
 
 }

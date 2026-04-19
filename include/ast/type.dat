@@ -1,0 +1,2 @@
+MACRO(VoidType, void, "void", VoidType)
+MACRO(IntegerType, void, "int", IntegerType)

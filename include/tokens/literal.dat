@@ -1,0 +1,2 @@
+MACRO(Identifier, std::string, "", Identifier)
+MACRO(Integer, int64_t, "", Integer)

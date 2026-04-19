@@ -9,4 +9,4 @@ namespace Scanner {
 
 std::vector<TokenInfo> scan(std::ifstream &source);
 
-};
+}

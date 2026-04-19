@@ -8,8 +8,8 @@ namespace Parser {
 struct Statement;
 
 struct Variable {
-    Identifier identifier;
     Type type;
+    Identifier identifier;
 };
 
 struct VariableDefinition {

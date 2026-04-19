@@ -1,10 +1,9 @@
 #include "scanner/scan.hpp"
 #include "util/singleton.hpp"
-#include <iostream>
+
 #include <charconv>
 #include <unordered_map>
-#include <queue>
-#include <iostream>
+
 namespace Scanner {
 
 struct Parser {
@@ -14,50 +13,46 @@ public:
     }
 
     static Token parse(const std::string &line, size_t &pos) {
-        Token token = parse_keyword(line, pos);
-        if (!valid_token(token)) {
-            token = parse_numeric_literal(line, pos);
+        Token(*const handlers[])(const std::string &, size_t &) = {
+            parse_keyword,
+            parse_numeric,
+            parse_identifier
+        };
+
+        for (const auto &handler : handlers) {
+            Token token = handler(line, pos);
+            if (valid_token(token)) return token;
         }
-        if (!valid_token(token)) {
-            token = parse_identifier_literal(line, pos);
-        }
-        return token;
+        return EOFToken{};
     }
 
     static Token parse_keyword(const std::string &line, size_t &pos) {
         return Parser::get_instance().parse_keyword_impl(line, pos);
     }
 
-    static Token parse_numeric_literal(const std::string &line, size_t &pos) {
+    static Token parse_numeric(const std::string &line, size_t &pos) {
         const char *begin = line.data() + pos;
         const char *end = line.data() + line.size();
-        
-        int base = 10;
-        unsigned value;
 
+        int base = 10;
         if (begin[0] == '0') {
-            switch (begin[1]) {
-            case 'b':
-                base = 2;
-                begin += 2;
-                break;
-            case 'x':
-                base = 16;
-                begin += 2;
-                break;
+            if (begin[1] == 'b') {
+                base = 2, begin += sizeof("0b");
+            } else if (begin[1] == 'x') {
+                base = 16, begin += sizeof("0x");
             }
         }
         
+        Integer::type value;
+
         auto [ptr, ec] = std::from_chars(begin, end, value, base);
         if (ec != std::errc() || ptr == begin) return EOFToken{};
-
+        
         pos = ptr - line.data();
-        return (line[pos] == 'u')
-            ? (++pos, Token(Unsigned{value}))
-            : Integer{static_cast<int>(value)};
+        return Integer{value};
     }
 
-    static Token parse_identifier_literal(const std::string &line, size_t &pos) {
+    static Token parse_identifier(const std::string &line, size_t &pos) {
         auto check = [&line](size_t pos) -> bool {
             return (std::isalnum(line[pos]) || line[pos] == '_');
         };
@@ -78,6 +73,12 @@ private:
     struct Node {
     public:
         Node() = default;
+        
+        ~Node() {
+            for (auto [_, node] : map_) {
+                delete node;
+            }
+        }
 
         const Node *step(char ch) const {
             auto it = map_.find(ch);
@@ -103,35 +104,15 @@ private:
             token_ = token;
         }
 
-        void clear() {
-            std::queue<Node *> queue;
-            for (auto &[_, node] : map_) {
-                queue.push(node);
-            }
-            map_.clear();
-
-            while (!queue.empty()) {
-                Node *delete_node = queue.front(); queue.pop();
-                for (auto &[_, node] : delete_node->map_) {
-                    queue.push(node);
-                }
-                delete delete_node;
-            }
-        }
-
     private:
         std::unordered_map<char, Node *> map_;
-        Token token_;
+        Token token_{EOFToken{}};
     };
 
     Parser() {
         [&]<token... Ts>(TTuple<Ts...>) {
             (add_token<Ts>(),...);
         }(Keywords{});
-    }
-
-    ~Parser() {
-        start_.clear();
     }
 
     template<token T>
@@ -192,4 +173,4 @@ std::vector<TokenInfo> scan(std::ifstream &source) {
     return tokens;
 }
 
-};
+}

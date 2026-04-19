@@ -1,0 +1,27 @@
+MACRO(Equal, void, "=", Assign)
+
+MACRO(AmpersandAmpersand, void, "&&", AndLogical)
+MACRO(PipePipe, void, "||", OrLogical)
+
+MACRO(Ampersand, void, "&", And)
+MACRO(Caret, void, "^", Xor)
+MACRO(Pipe, void, "|", Or)
+
+MACRO(LessLess, void, "<<", LeftShift)
+MACRO(GreaterGreater, void, ">>", RightShift)
+
+MACRO(EqualEqual, void, "==", Equal)
+MACRO(ExclamationEqual, void, "!=", NotEqual)
+
+MACRO(Less, void, "<", Less)
+MACRO(LessEqual, void, "<=", LessEqual)
+
+MACRO(Greater, void, ">", Greater)
+MACRO(GreaterEqual, void, ">=", GreaterEqual)
+
+MACRO(Plus, void, "+", Addition)
+MACRO(Minus, void, "-", Subtraction)
+
+MACRO(Slash, void, "/", Division)
+MACRO(Percent, void, "%", Remainder)
+MACRO(Star, void, "*", Multiplication)

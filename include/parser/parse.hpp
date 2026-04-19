@@ -4,5 +4,8 @@
 #include "parser/definition.hpp"
 
 namespace Parser {
-  Program parse(const std::vector<Scanner::TokenInfo> &tokens);
-};
+
+using TokenIterator = std::vector<Scanner::TokenInfo>::const_iterator;
+Program parse(const std::vector<Scanner::TokenInfo> &tokens);
+
+}

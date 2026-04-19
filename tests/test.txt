@@ -1,4 +1,4 @@
-func main(int a, uint b) -> void** {
-    main(&a[4](1, 2), *((b + 1) << 4)[2], 4, 5 >= 2);
+func main(int a, int b) -> void** {
+    main(&a(1, 2), *((b + 1) << 4), 4, 5 >= 2);
     main();
 }

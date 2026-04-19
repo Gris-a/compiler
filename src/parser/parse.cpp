@@ -1,10 +1,7 @@
-#include "parser/definition.hpp"
-#include "scanner/token.hpp"
+#include "parser/parse.hpp"
 #include "util/overloaded.hpp"
 
 namespace Parser {
-
-using TokenIterator = std::vector<Scanner::TokenInfo>::const_iterator;
 
 template<Scanner::token T>
 T expect_token(TokenIterator &iter) {
@@ -52,15 +49,15 @@ Definition parse_definition(TokenIterator &iter);
 
 Expression parse_primary(TokenIterator &iter);
 
-Expression parse_special(TokenIterator &iter);
+Expression parse_function_call(TokenIterator &iter);
 
-template<typename Function, binary_operation... Operation>
+template<typename Function, binop... Operation>
 auto parse_binary_expression = [](TokenIterator &iter) -> Expression {
     Expression expression = Function()(iter);
 
     for (bool parse = true; parse;) {
         std::visit(
-            Overloaded{
+            Overloaded {
                 [&]([[maybe_unused]] const typename Operation::Token &token) -> void {
                     expression = Operation {
                         std::make_unique<Expression>(std::move(expression)),
@@ -79,20 +76,20 @@ auto parse_binary_expression = [](TokenIterator &iter) -> Expression {
 };
 
 Expression parse_unary_expression(TokenIterator &iter) {
-    return [&]<unary_operation... Operation>(TTuple<Operation...>) -> Expression {
+    return [&]<unop... Operation>(TTuple<Operation...>) -> Expression {
         return std::visit(
-            Overloaded{
+            Overloaded {
                 [&]([[maybe_unused]] const typename Operation::Token &token) -> Expression {
                     return Operation{std::make_unique<Expression>(parse_unary_expression(++iter))};
                 }...,
                 [&]([[maybe_unused]] const Scanner::token auto &token) -> Expression {
-                    return parse_special(iter);
+                    return parse_function_call(iter);
                 }
             },
             iter->token
         );
-    }(UnaryOperations{});
-};
+    }(UnaryOps{});
+}
 
 auto parse_unary = [](TokenIterator &iter) -> Expression {
     return parse_unary_expression(iter);
@@ -161,21 +158,16 @@ auto parse_assign = parse_binary_expression
 , Assign
 >;
 
-auto parse_comma = parse_binary_expression
-< decltype(parse_assign)
-, Comma
->;
-
 Expression parse_expression(TokenIterator &iter) {
-    return parse_comma(iter);
+    return parse_assign(iter);
 }
 
-Expression parse_special(TokenIterator &iter) {
+Expression parse_function_call(TokenIterator &iter) {
     Expression expression = parse_primary(iter);
 
     for (bool parse = true; parse;) {
         std::visit(
-            Overloaded{
+            Overloaded {
                 [&]([[maybe_unused]] const Scanner::OpenBrace &token) {
                     std::vector<Expression> args;
                     if (!peek_token<Scanner::CloseBrace>(++iter)) {
@@ -190,13 +182,6 @@ Expression parse_special(TokenIterator &iter) {
                     };
                     expect_token<Scanner::CloseBrace>(iter);
                 },
-                [&]([[maybe_unused]] const Scanner::OpenSquare &token) {
-                    expression = Index {
-                        std::make_unique<Expression>(std::move(expression)),
-                        std::make_unique<Expression>(parse_expression(++iter))
-                    };
-                    expect_token<Scanner::CloseSquare>(iter);
-                },
                 [&]([[maybe_unused]] const Scanner::token auto &token) {
                     parse = false;
                 }
@@ -209,9 +194,9 @@ Expression parse_special(TokenIterator &iter) {
 }
 
 Expression parse_primary(TokenIterator &iter) {
-    return [&]<primary_expression... Expr>(TTuple<Expr...>) -> Expression {
+    return [&]<literal... Expr>(TTuple<Expr...>) -> Expression {
         return std::visit(
-            Overloaded{
+            Overloaded {
                 [&]([[maybe_unused]] const typename Expr::Token &token) -> Expression {
                     ++iter;
                     return Expr{token.value};
@@ -228,35 +213,32 @@ Expression parse_primary(TokenIterator &iter) {
             },
             iter->token
         );
-    }(PrimaryExpressions{});
+    }(Literals{});
 }
 
 Type parse_type(TokenIterator &iter) {
-    Type type;
-
-    std::visit(
-        Overloaded {
-            [&]([[maybe_unused]] const Scanner::VoidType &token) -> void {
-                ++iter, type = VoidType{};
+    Type type = [&]<primary_type... T>(TTuple<T...>) -> Type {
+        return std::visit(
+            Overloaded {
+                [&]([[maybe_unused]] const typename T::Token &token) -> Type {
+                    ++iter;
+                    return T{};
+                }...,
+                [&]([[maybe_unused]] const Scanner::token auto &token) -> Type {
+                    throw iter->pos;
+                }
             },
-            [&]([[maybe_unused]] const Scanner::IntegerType &token) -> void {
-                ++iter, type = IntegerType{};
-            },
-            [&]([[maybe_unused]] const Scanner::UnsignedType &token) -> void {
-                ++iter, type = UnsignedType{};
-            },
-            [&]([[maybe_unused]] const Scanner::token auto &token) -> void {
-                throw iter->pos;
-            }
-        },
-        iter->token
-    );
+            iter->token
+        );
+    }(Types{});
 
     for (bool read_modifier = true; read_modifier; ) {
         std::visit(
             Overloaded {
-                [&]([[maybe_unused]] const Scanner::Dereference &token) -> void {
-                    ++iter, type = Pointer{std::make_unique<Type>(std::move(type))};
+                [&]([[maybe_unused]] const Scanner::Star &token) -> void {
+                    ++iter;
+                    type = Pointer{std::make_unique<Type>(std::move(type))};
+                    std::cout << "ptr\n";
                 },
                 [&]([[maybe_unused]] const Scanner::token auto &token) -> void {
                     read_modifier = false;
@@ -373,7 +355,7 @@ VariableDefinition parse_variable_definition(TokenIterator &iter) {
     definition.variable = parse_variable(iter);
     std::visit(
         Overloaded {
-            [&]([[maybe_unused]] const Scanner::Assign &token) -> void {
+            [&]([[maybe_unused]] const Scanner::Equal &token) -> void {
                 definition.initializer = std::make_unique<Expression>(parse_expression(++iter));
                 expect_token<Scanner::Semicolon>(iter);
             },

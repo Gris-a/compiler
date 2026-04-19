@@ -7,11 +7,12 @@
 
 #include "parser/vizitor.hpp"
 
-namespace Parser {
+namespace Vizitor {
+
+using namespace Parser;
 
 std::string to_string(const Identifier &t) { return t.value; }
 std::string to_string(const Integer &t)    { return std::to_string(t.value); }
-std::string to_string(const Unsigned &t)   { return std::to_string(t.value); }
 
 class PrintVizitor : public Vizitor {
 public:
@@ -145,12 +146,6 @@ public:
         dot_stream_ << "  " << id << " [label=\"" << label << "\", shape=ellipse, color=lightblue];\n";
     }
 
-    void vizit(const Unsigned &uns) override {
-        size_t id = get_node_id(&uns);
-        std::string label = "Unsigned: " + to_string(uns);
-        dot_stream_ << "  " << id << " [label=\"" << label << "\", shape=ellipse, color=lightblue];\n";
-    }
-
     #define VIZIT_BINOP(name) \
     void vizit(const name &op) override { \
         size_t id = get_node_id(&op); \
@@ -167,7 +162,6 @@ public:
         } \
     }
 
-    VIZIT_BINOP(Comma)
     VIZIT_BINOP(Assign)
     VIZIT_BINOP(Addition)
     VIZIT_BINOP(Subtraction)
@@ -210,21 +204,6 @@ public:
     VIZIT_UNOP(Decrement)
     #undef VIZIT_UNOP
 
-    void vizit(const Index &idx) override {
-        size_t id = get_node_id(&idx);
-        dot_stream_ << "  " << id << " [label=\"[]\", shape=box, color=lightyellow];\n";
-        if (idx.at) {
-            size_t at_id = get_node_id(idx.at.get());
-            dot_stream_ << "  " << id << " -> " << at_id << " [label=\"array\"];\n";
-            vizit(*idx.at);
-        }
-        if (idx.pos) {
-            size_t pos_id = get_node_id(idx.pos.get());
-            dot_stream_ << "  " << id << " -> " << pos_id << " [label=\"index\"];\n";
-            vizit(*idx.pos);
-        }
-    }
-
     void vizit(const FunctionCall &call) override {
         size_t id = get_node_id(&call);
         dot_stream_ << "  " << id << " [label=\"Call\", shape=box, color=lightyellow];\n";
@@ -248,11 +227,6 @@ public:
     void vizit(const IntegerType &it) {
         size_t id = get_node_id(&it);
         dot_stream_ << "  " << id << " [label=\"Integer\", shape=ellipse, color=lightblue];\n";
-    }
-
-    void vizit(const UnsignedType &ut) {
-        size_t id = get_node_id(&ut);
-        dot_stream_ << "  " << id << " [label=\"Unsigned\", shape=ellipse, color=lightblue];\n";
     }
 
     void vizit(const Pointer &ptr) {
