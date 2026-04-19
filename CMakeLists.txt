@@ -23,5 +23,9 @@ target_include_directories(scanner PUBLIC include)
 add_library(parser src/parser/parse.cpp)
 target_include_directories(parser PUBLIC include)
 
+add_library(semantic src/semantic/semantic.cpp)
+target_include_directories(semantic PUBLIC include)
+
 add_executable(compiler src/main.cpp)
-target_link_libraries(compiler PRIVATE scanner parser CLI11::CLI11)
+target_include_directories(compiler PRIVATE include)
+target_link_libraries(compiler PRIVATE scanner parser semantic CLI11::CLI11)
