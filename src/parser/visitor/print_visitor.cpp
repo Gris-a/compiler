@@ -127,9 +127,11 @@ size_t GraphvizPrinter::visit(const Scope &scope) {
 
 size_t GraphvizPrinter::visit(const Condition &condition) {
     size_t id = add_node("Condition");
-    size_t if_id = add_node("IfExpression");
-    add_edge(id, if_id);
-    add_edge(if_id, visit(*condition.if_expression));
+    if (condition.if_expression) {
+        size_t if_id = add_node("IfExpression");
+        add_edge(id, if_id);
+        add_edge(if_id, visit(*condition.if_expression));
+    }
 
     size_t then_id = add_node("Then");
     add_edge(id, then_id);
