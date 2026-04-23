@@ -36,11 +36,8 @@ ElseStatement = ""
               | "else" ScopedStatement;
 
 
-Expression = AssignmentExpression
-           | Expression "," AssignmentExpression;
-
-AssignmentExpression = LogicalOrExpression
-                     | AssignmentExpression "=" LogicalOrExpression;
+Expression = LogicalOrExpression
+           | Expression "=" LogicalOrExpression;
 
 LogicalOrExpression = LogicalAndExpression
                     | LogicalOrExpression "||" LogicalAndExpression;
@@ -90,8 +87,9 @@ PrefixExpression = PostfixExpression
                  | "++" PrefixExpression
                  | "--" PrefixExpression;
 
+FunctionCallArguments = (Expression ("," Expression)*)?
 PostfixExpression = PrimaryExpression
-                  | PostfixExpression "(" (Expression)? ")";
+                  | PostfixExpression "(" FunctionCallArguments ")";
 
 PrimaryExpression = Identifier
                   | Literal
