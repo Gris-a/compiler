@@ -2,9 +2,9 @@
 
 #include <vector>
 
-#include "parser/binary_operation.hpp"
-#include "parser/unary_operation.hpp"
-#include "parser/literal.hpp"
+#include "parser/common/binary_operation.hpp"
+#include "parser/common/unary_operation.hpp"
+#include "parser/common/literal.hpp"
 
 namespace Parser {
 

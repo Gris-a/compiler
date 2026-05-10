@@ -1,17 +1,17 @@
 #pragma once
 
-#include "scanner/token_base.hpp"
+#include "scanner/common/token_base.hpp"
 
 namespace Scanner {
 
 #define MACRO(name, type, literal, ...) name,
-using Types = Pop<TTuple<
-#include "ast/type.dat"
+using UnaryOps = Pop<TTuple<
+#include "ast/unop.dat"
 struct Dummy
 >>::Result;
 #undef MACRO
 
 template<typename T>
-concept type = Contains<Types, T>::value;
+concept unop = Contains<UnaryOps, T>::value;
 
 }

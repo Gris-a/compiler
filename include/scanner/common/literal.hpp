@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scanner/token_base.hpp"
+#include "scanner/common/token_base.hpp"
 
 namespace Scanner {
 

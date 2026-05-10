@@ -1,12 +1,12 @@
 #pragma once
 
-#include "scanner/token_base.hpp"
+#include "scanner/common/token_base.hpp"
 
-#include "scanner/type.hpp"
-#include "scanner/binary_operation.hpp"
-#include "scanner/unary_operation.hpp"
-#include "scanner/keyword.hpp"
-#include "scanner/literal.hpp"
+#include "scanner/common/type.hpp"
+#include "scanner/common/binary_operation.hpp"
+#include "scanner/common/unary_operation.hpp"
+#include "scanner/common/keyword.hpp"
+#include "scanner/common/literal.hpp"
 
 namespace Scanner {
 
