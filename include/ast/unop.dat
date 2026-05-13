@@ -1,0 +1,11 @@
+MACRO(PlusPlus, void, "++", Increment)
+MACRO(MinusMinus, void, "--", Decrement)
+
+MACRO(Exclamation, void, "!", NotLogical)
+MACRO(Tilde, void, "~", Not)
+
+MACRO(Plus, void, "+", Plus)
+MACRO(Minus, void, "-", Minus)
+
+MACRO(Star, void, "*", Dereference)
+MACRO(Ampersand, void, "&", Reference)
