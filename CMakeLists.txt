@@ -19,7 +19,7 @@ target_include_directories(scanner PUBLIC include)
 
 add_library(parser
     src/parser/parse.cpp
-    # src/parser/semantics.cpp
+    src/parser/semantics.cpp
 )
 target_link_libraries(parser PUBLIC scanner)
 target_include_directories(parser PUBLIC include)

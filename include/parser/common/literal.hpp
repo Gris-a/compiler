@@ -9,7 +9,7 @@ namespace Parser {
 struct Expression;
 
 #define MACRO(name, type, literal, ast, ...) \
-struct ast {                                 \
+struct ast : ASTBase {                       \
     using Token = Scanner::name;             \
     type value;                              \
 };

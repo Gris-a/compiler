@@ -1,14 +1,15 @@
 #pragma once
+#include <memory>
 
 #include "scanner/common/token.hpp"
+#include "parser/common/ast_base.hpp"
 
-#include <memory>
 
 namespace Parser {
 
 struct Expression;
 
-struct UnaryOperationBase {
+struct UnaryOperationBase : ASTBase {
     std::unique_ptr<Expression> operand;
 };
 

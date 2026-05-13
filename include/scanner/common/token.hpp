@@ -28,7 +28,9 @@ inline bool valid_token(const Token &token) {
 }
 
 struct TokenInfo {
+    TokenInfo() : pos(0, 0), token(EOFToken{}) {}
     TokenInfo(Position pos, Token token): pos(pos), token(token) {}
+    
     Position pos;
     Token token;
 };

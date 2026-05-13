@@ -8,6 +8,7 @@
 
 #include "scanner/scan.hpp"
 #include "parser/parse.hpp"
+#include "parser/semantics.hpp"
 
 CLI::App app{"compiler"};
 
@@ -24,6 +25,13 @@ int main(int argc, char **argv) {
     try {
         std::ifstream file(filename);
         Parser::Program program = Parser::parse(Scanner::scan(file));
+        Parser::Semantic semantic(program);
+
+        for (const auto &issue: semantic.issues()) {
+            auto pos = issue.info().pos;
+            std::cout << issue.message() << " at " << pos.line << ' ' << pos.pos << '\n';
+
+        }
     } catch (Scanner::Position position) {
         std::cout << position.line << ' ' << position.pos << '\n';
         return EXIT_FAILURE;

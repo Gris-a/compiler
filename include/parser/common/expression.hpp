@@ -1,5 +1,4 @@
 #pragma once
-
 #include <vector>
 
 #include "parser/common/binary_operation.hpp"
@@ -10,8 +9,8 @@ namespace Parser {
 
 struct Expression;
 
-struct FunctionCall {
-    std::unique_ptr<Expression> function;
+struct FunctionCall : ASTBase {
+    Identifier function;
     std::vector<Expression> arguments;
 };
 

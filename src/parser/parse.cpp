@@ -58,7 +58,9 @@ auto parse_binary_expression = [](TokenIterator &iter) -> Expression {
     for (bool parse = true; parse;) {
         std::visit(Overloaded {
             [&]([[maybe_unused]] const typename Operation::Token &token) -> void {
+                auto info = *iter;
                 expression = Operation {
+                    std::move(info),
                     std::make_unique<Expression>(std::move(expression)),
                     std::make_unique<Expression>(Function()(++iter))
                 };
@@ -76,7 +78,8 @@ Expression parse_unary_expression(TokenIterator &iter) {
     return [&]<unop... Operation>(TTuple<Operation...>) -> Expression {
         return std::visit(Overloaded {
             [&]([[maybe_unused]] const typename Operation::Token &token) -> Expression {
-                return Operation{std::make_unique<Expression>(parse_unary_expression(++iter))};
+                Scanner::TokenInfo info = *iter;
+                return Operation{std::move(info), std::make_unique<Expression>(parse_unary_expression(++iter))};
             }...,
             [&]([[maybe_unused]] const Scanner::token auto &token) -> Expression {
                 return parse_function_call(iter);
@@ -158,29 +161,20 @@ Expression parse_expression(TokenIterator &iter) {
 
 Expression parse_function_call(TokenIterator &iter) {
     Expression expression = parse_primary(iter);
-
-    for (bool parse = true; parse;) {
-        std::visit(Overloaded {
-            [&]([[maybe_unused]] const Scanner::OpenBrace &token) {
-                std::vector<Expression> args;
-                if (!peek_token<Scanner::CloseBrace>(++iter)) {
-                    --iter;
-                    do {
-                        args.emplace_back(parse_assign(++iter));
-                    } while (peek_token<Scanner::Comma>(iter));
-                }
-                expression = FunctionCall {
-                    std::make_unique<Expression>(std::move(expression)),
-                    std::move(args)
-                };
-                expect_token<Scanner::CloseBrace>(iter);
-            },
-            [&]([[maybe_unused]] const Scanner::token auto &token) {
-                parse = false;
+    if (peek_token<Scanner::OpenBrace>(iter)) {
+        auto info = *iter;
+        if (auto *func = std::get_if<Identifier>(&expression)) {
+            std::vector<Expression> args;
+            if (!peek_token<Scanner::CloseBrace>(++iter)) {
+                --iter;
+                do {
+                    args.emplace_back(parse_assign(++iter));
+                } while (peek_token<Scanner::Comma>(iter));
             }
-        }, iter->token);
+            expression = FunctionCall{info, std::move(*func), std::move(args)};
+            expect_token<Scanner::CloseBrace>(iter);
+        } else throw iter->pos;
     }
-
     return expression;
 }
 
@@ -188,8 +182,7 @@ Expression parse_primary(TokenIterator &iter) {
     return [&]<literal... Expr>(TTuple<Expr...>) -> Expression {
         return std::visit(Overloaded {
             [&]([[maybe_unused]] const typename Expr::Token &token) -> Expression {
-                ++iter;
-                return Expr{token.value};
+                return Expr{*(iter++), token.value};
             }...,
             [&]([[maybe_unused]] const Scanner::OpenBrace &token) -> Expression {
                 auto expression = parse_expression(++iter);
@@ -208,8 +201,7 @@ Type parse_type(TokenIterator &iter) {
     Type type = [&]<primary_type... T>(TTuple<T...>) -> Type {
         return std::visit(Overloaded {
             [&]([[maybe_unused]] const typename T::Token &token) -> Type {
-                ++iter;
-                return T{};
+                return T{*(iter++)};
             }...,
             [&]([[maybe_unused]] const Scanner::token auto &token) -> Type {
                 throw iter->pos;
@@ -217,11 +209,14 @@ Type parse_type(TokenIterator &iter) {
         }, iter->token);
     }(Types{});
 
+    if (std::holds_alternative<VoidType>(type)) {
+        return type;
+    }
+
     for (bool read_modifier = true; read_modifier; ) {
         std::visit(Overloaded {
             [&]([[maybe_unused]] const Scanner::Star &token) -> void {
-                ++iter;
-                type = Pointer{std::make_unique<Type>(std::move(type))};
+                type = Pointer{*(iter++), std::make_unique<Type>(std::move(type))};
             },
             [&]([[maybe_unused]] const Scanner::token auto &token) -> void {
                 read_modifier = false;
@@ -236,6 +231,9 @@ Variable parse_variable(TokenIterator &iter) {
     Variable variable;
     
     variable.type = parse_type(iter);
+    if (std::holds_alternative<VoidType>(variable.type)) {
+        throw (--iter)->pos;
+    }
     variable.identifier.value = expect_token<Scanner::Identifier>(iter).value;
 
     return variable;
@@ -257,7 +255,7 @@ Scope parse_scope(TokenIterator &iter) {
 }
 
 Condition parse_else(TokenIterator &iter) {
-    Condition statement;
+    Condition statement{*iter};
     
     expect_token<Scanner::Else>(iter);
     std::visit(Overloaded {
@@ -276,7 +274,7 @@ Condition parse_else(TokenIterator &iter) {
 }
 
 Condition parse_if(TokenIterator &iter) {
-    Condition statement;
+    Condition statement{*iter};
     
     expect_token<Scanner::If>(iter);
     statement.if_expression = std::make_unique<Expression>(parse_expression(iter));
@@ -289,7 +287,7 @@ Condition parse_if(TokenIterator &iter) {
 }
 
 Return parse_return(TokenIterator &iter) {
-    Return ret;
+    Return ret{*iter};
     
     expect_token<Scanner::Return>(iter);
     if (!peek_token<Scanner::Semicolon>(iter)) {
@@ -333,6 +331,7 @@ VariableDefinition parse_variable_definition(TokenIterator &iter) {
     definition.variable = parse_variable(iter);
     std::visit(Overloaded {
         [&]([[maybe_unused]] const Scanner::Equal &token) -> void {
+            definition.token_info = *iter;
             definition.initializer = std::make_unique<Expression>(parse_expression(++iter));
             expect_token<Scanner::Semicolon>(iter);
         },
@@ -363,7 +362,7 @@ std::vector<Variable> parse_function_arguments(TokenIterator &iter) {
 }
 
 FunctionDeclaration parse_function_declaration(TokenIterator &iter) {
-    FunctionDeclaration declaration;
+    FunctionDeclaration declaration{*iter};
 
     expect_token<Scanner::Function>(iter);
     declaration.name.value = expect_token<Scanner::Identifier>(iter).value;

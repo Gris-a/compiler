@@ -1,21 +1,23 @@
 #pragma once
-
-#include "parser/common/definition.hpp"
 #include <string>
+#include <unordered_set>
 #include <unordered_map>
 #include <variant>
 #include <vector>
 #include <memory>
-#include <optional>
+#include <ranges>
+#include <forward_list>
 
-namespace Parser::Semantic {
+#include "parser/common/definition.hpp"
+
+namespace Parser {
 
 struct VariableSymbol {
     const Variable *variable;
 };
 
 struct FunctionSymbol {
-    std::vector<const FunctionDefinition *> overloads;
+    const FunctionDefinition *function;
 };
 
 using Symbol = std::variant<VariableSymbol, FunctionSymbol>;
@@ -23,24 +25,30 @@ using SymbolTable = std::unordered_map<std::string, Symbol>;
 
 using ResolvedSymbol = std::variant<const Variable *, const FunctionDefinition *>;
 
-class Issue {
-public:
-    enum class Severity { Error, Warning };
 
-    Issue(Severity severity, std::string message);
-    
-    Severity severity() const;
-    const std::string &message() const;
-
-private:
-    Severity severity_;
-    std::string message_;
-};
 
 class Semantic {
 public:
     explicit Semantic(const Program &program);
 
+    class Issue {
+    public:
+        enum class Severity { Error, Warning };
+
+        Issue(Severity severity, std::string message, Scanner::TokenInfo info);
+        
+        Severity severity() const;
+
+        const std::string &message() const;
+        const Scanner::TokenInfo &info() const;
+
+    private:
+        Severity severity_;
+        std::string message_;
+        Scanner::TokenInfo info_;
+    };
+
+    const std::vector<Issue> &issues() const;
 private:
     class Scope {
     public:
@@ -56,23 +64,22 @@ private:
 
     private:
         Scope *parent_;
-        std::vector<Scope> children_;
+        std::forward_list<Scope> children_;
 
         SymbolTable symbols_;
     };
     
+    void analyze_variable_definition(Scope *scope, const VariableDefinition &var_def);
+    void analyze_variable(Scope *scope, const Variable &var);
     void analyze_function(Scope *scope, const FunctionDefinition &func_def);
-    void analyze_variable(Scope *scope, const VariableDefinition &var_def);
     
-    void analyze_scope(Scope *scope, const Parser::Scope &ast_scope, const Type &expected_ret);
-    
-    const Type *analyze_expression(Scope *scope, const Expression &expr);
-    const FunctionDefinition *&resolve_overload(const FunctionSymbol &sym, const std::vector<Variable> &args);
+    void analyze_scope(Scope *scope, const Parser::Scope &ast_scope);
+    void analyze_expression(Scope *scope, const Expression &expr);
 
     Scope global_scope_{};
-    std::unordered_map<const Identifier *, ResolvedSymbol> resolved_symbols_;
-
     std::vector<Issue> issues_;
+
+    std::unordered_map<const Identifier *, ResolvedSymbol> resolved_symbols_;
 };
 
-} // namespace Parser::Semantic
+} // namespace Parser

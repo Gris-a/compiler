@@ -7,15 +7,15 @@ namespace Parser {
 
 struct Statement;
 
-struct Return {
+struct Return : ASTBase {
     std::unique_ptr<Expression> expression;
 };
 
-struct Scope {
+struct Scope : ASTBase {
     std::vector<Statement> statements;
 };
 
-struct Condition {
+struct Condition : ASTBase {
     std::unique_ptr<Expression> if_expression;
     Scope statement;
 
@@ -27,12 +27,12 @@ struct Variable {
     Identifier identifier;
 };
 
-struct VariableDefinition {
+struct VariableDefinition : ASTBase {
     Variable variable;
     std::unique_ptr<Expression> initializer;
 };
 
-struct FunctionDeclaration {
+struct FunctionDeclaration : ASTBase {
     Identifier name;
 
     Type return_type;
