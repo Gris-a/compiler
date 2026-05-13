@@ -75,17 +75,17 @@ void Semantic::analyze_function(Scope *scope, const FunctionDefinition &func_def
     const std::string &name = func_def.declaration.name.value;
 
     if (Symbol *sym = scope->find_symbol_local(name)) {
-        if (auto *func = std::get_if<FunctionSymbol>(sym)) {
+        if (auto *func = std::get_if<FunctionSymbol>(sym); func && (*func->declaration == func_def.declaration)) {
             if (func_def.definition) {
-                if (func->function->definition)
+                if (func->definition)
                     issues_.emplace_back(Issue::Severity::Error, "Multiple function definitions in same scope.", func_def.declaration.token_info);
-                else *sym = FunctionSymbol{&func_def};
+                else func->definition = &func_def;
             }
         } else issues_.emplace_back(Issue::Severity::Error, "Multiple declarations in same scope.", func_def.declaration.token_info);
     } else {
         if (scope->find_symbol(name))
             issues_.emplace_back(Issue::Severity::Warning, "Shadow declaration.", func_def.declaration.token_info);
-        scope->add_symbol(name, FunctionSymbol{&func_def});
+        scope->add_symbol(name, FunctionSymbol{&func_def.declaration, (func_def.definition ? &func_def : nullptr)});
     }
 
     if (func_def.definition) {
@@ -127,7 +127,7 @@ void Semantic::analyze_expression(Scope *scope, const Expression &expr) {
         [&](const FunctionCall &call) {
             if (const auto *sym = scope->find_symbol(call.function.value)) {
                 if (const auto *func = std::get_if<FunctionSymbol>(sym)) {
-                        resolved_symbols_[&call.function] = func->function;
+                        resolved_symbols_[&call.function] = func->declaration;
                 } else issues_.emplace_back(Issue::Severity::Error, "Not a function.", call.function.token_info);
             } else issues_.emplace_back(Issue::Severity::Error, "Undefined identifier.", call.function.token_info);
         },

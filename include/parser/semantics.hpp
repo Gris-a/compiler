@@ -17,13 +17,14 @@ struct VariableSymbol {
 };
 
 struct FunctionSymbol {
-    const FunctionDefinition *function;
+    const FunctionDeclaration *declaration;
+    const FunctionDefinition *definition;
 };
 
 using Symbol = std::variant<VariableSymbol, FunctionSymbol>;
 using SymbolTable = std::unordered_map<std::string, Symbol>;
 
-using ResolvedSymbol = std::variant<const Variable *, const FunctionDefinition *>;
+using ResolvedSymbol = std::variant<const Variable *, const FunctionDeclaration *>;
 
 
 

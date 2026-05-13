@@ -1,4 +1,5 @@
 #pragma once
+#include <ranges>
 
 #include "parser/common/expression.hpp"
 #include "parser/common/type.hpp"
@@ -37,6 +38,13 @@ struct FunctionDeclaration : ASTBase {
 
     Type return_type;
     std::vector<Variable> arguments;
+
+    friend bool operator==(const FunctionDeclaration &lhs, const FunctionDeclaration &rhs) {
+        return (lhs.return_type == rhs.return_type) &&
+            (lhs.arguments.size() == rhs.arguments.size()) &&
+            std::ranges::equal(lhs.arguments, rhs.arguments,
+                [](const auto &larg, const auto &rarg) { return larg.type == rarg.type; });
+    }
 };
 
 struct FunctionDefinition {
