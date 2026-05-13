@@ -24,10 +24,6 @@ struct FunctionSymbol {
 using Symbol = std::variant<VariableSymbol, FunctionSymbol>;
 using SymbolTable = std::unordered_map<std::string, Symbol>;
 
-using ResolvedSymbol = std::variant<const Variable *, const FunctionDeclaration *>;
-
-
-
 class Semantic {
 public:
     explicit Semantic(const Program &program);
@@ -80,7 +76,7 @@ private:
     Scope global_scope_{};
     std::vector<Issue> issues_;
 
-    std::unordered_map<const Identifier *, ResolvedSymbol> resolved_symbols_;
+    std::unordered_map<const Identifier *, const Symbol *> resolved_symbols_;
 };
 
 } // namespace Parser

@@ -119,15 +119,15 @@ void Semantic::analyze_expression(Scope *scope, const Expression &expr) {
     return std::visit(Overloaded {
         [&](const Identifier &ident) {
             if (const auto *sym = scope->find_symbol(ident.value)) {
-                if (const auto *var = std::get_if<VariableSymbol>(sym)) {
-                    resolved_symbols_[&ident] = var->variable;
+                if (std::holds_alternative<VariableSymbol>(*sym)) {
+                    resolved_symbols_[&ident] = sym;
                 } else issues_.emplace_back(Issue::Severity::Error, "Not a variable.", ident.token_info);
             } else issues_.emplace_back(Issue::Severity::Error, "Undefined identifier.", ident.token_info);
         },
         [&](const FunctionCall &call) {
             if (const auto *sym = scope->find_symbol(call.function.value)) {
-                if (const auto *func = std::get_if<FunctionSymbol>(sym)) {
-                        resolved_symbols_[&call.function] = func->declaration;
+                if (std::holds_alternative<FunctionSymbol>(*sym)) {
+                        resolved_symbols_[&call.function] = sym;
                 } else issues_.emplace_back(Issue::Severity::Error, "Not a function.", call.function.token_info);
             } else issues_.emplace_back(Issue::Severity::Error, "Undefined identifier.", call.function.token_info);
         },
