@@ -1,17 +1,16 @@
 #pragma once
-
 #include <vector>
 
-#include "parser/binary_operation.hpp"
-#include "parser/unary_operation.hpp"
-#include "parser/literal.hpp"
+#include "parser/common/binary_operation.hpp"
+#include "parser/common/unary_operation.hpp"
+#include "parser/common/literal.hpp"
 
 namespace Parser {
 
 struct Expression;
 
-struct FunctionCall {
-    std::unique_ptr<Expression> function;
+struct FunctionCall : ASTBase {
+    Identifier function;
     std::vector<Expression> arguments;
 };
 

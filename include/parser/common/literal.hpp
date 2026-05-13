@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scanner/token.hpp"
+#include "scanner/common/token.hpp"
 
 #include <memory>
 
@@ -8,26 +8,23 @@ namespace Parser {
 
 struct Expression;
 
-struct UnaryOperationBase {
-    std::unique_ptr<Expression> operand;
-};
-
 #define MACRO(name, type, literal, ast, ...) \
-struct ast : UnaryOperationBase {            \
+struct ast : ASTBase {                       \
     using Token = Scanner::name;             \
+    type value;                              \
 };
 
-#include "ast/unop.dat"
+#include "tokens/literal.dat"
 #undef MACRO
 
 #define MACRO(name, type, literal, ast, ...) ast,
-using UnaryOps = Pop<TTuple<
-#include "ast/unop.dat"
+using Literals = Pop<TTuple<
+#include "tokens/literal.dat"
 struct Dummy
 >>::Result;
 #undef MACRO
 
 template<typename T>
-concept unop = Contains<UnaryOps, T>::value;
+concept literal = Contains<Literals, T>::value;
 
 }

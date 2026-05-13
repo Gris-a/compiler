@@ -1,17 +1,17 @@
 #pragma once
 
-#include "scanner/token_base.hpp"
+#include "scanner/common/token_base.hpp"
 
 namespace Scanner {
 
 #define MACRO(name, type, literal, ...) name,
-using BinaryOps = Pop<TTuple<
-#include "ast/binop.dat"
+using Types = Pop<TTuple<
+#include "ast/type.dat"
 struct Dummy
 >>::Result;
 #undef MACRO
 
 template<typename T>
-concept binop = Contains<BinaryOps, T>::value;
+concept type = Contains<Types, T>::value;
 
 }

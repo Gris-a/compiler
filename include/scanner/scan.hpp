@@ -3,7 +3,7 @@
 #include <vector>
 #include <fstream>
 
-#include "token.hpp"
+#include "scanner/common/token.hpp"
 
 namespace Scanner {
 

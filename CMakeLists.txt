@@ -17,7 +17,10 @@ FetchContent_MakeAvailable(cli11)
 add_library(scanner src/scanner/scan.cpp)
 target_include_directories(scanner PUBLIC include)
 
-add_library(parser src/parser/parse.cpp src/parser/visitor/print_visitor.cpp)
+add_library(parser
+    src/parser/parse.cpp
+    src/parser/semantics.cpp
+)
 target_link_libraries(parser PUBLIC scanner)
 target_include_directories(parser PUBLIC include)
 

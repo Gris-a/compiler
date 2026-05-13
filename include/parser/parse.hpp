@@ -1,7 +1,7 @@
 #pragma once
 
-#include "scanner/token.hpp"
-#include "parser/definition.hpp"
+#include "scanner/common/token.hpp"
+#include "parser/common/definition.hpp"
 
 namespace Parser {
 
