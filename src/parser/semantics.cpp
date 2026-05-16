@@ -55,6 +55,13 @@ const std::vector<Semantic::Issue> &Semantic::issues() const {
     return issues_;
 }
 
+const Symbol *Semantic::lookup_symbol(const Identifier &id) const {
+    auto it = resolved_symbols_.find(&id);
+    if (it != resolved_symbols_.end())
+        return it->second;
+    return nullptr;
+}
+
 void Semantic::analyze_variable_definition(Scope *scope, const VariableDefinition &var_def) {
     if (var_def.initializer)
         analyze_expression(scope, *var_def.initializer);
@@ -75,17 +82,17 @@ void Semantic::analyze_function(Scope *scope, const FunctionDefinition &func_def
     const std::string &name = func_def.declaration.name.value;
 
     if (Symbol *sym = scope->find_symbol_local(name)) {
-        if (auto *func = std::get_if<FunctionSymbol>(sym); func && (*func->declaration == func_def.declaration)) {
+        if (auto *func = std::get_if<FunctionSymbol>(sym); func && (func->function->declaration == func_def.declaration)) {
             if (func_def.definition) {
-                if (func->definition)
+                if (func->function->definition)
                     issues_.emplace_back(Issue::Severity::Error, "Multiple function definitions in same scope.", func_def.declaration.token_info);
-                else func->definition = &func_def;
+                else func->function = &func_def;
             }
         } else issues_.emplace_back(Issue::Severity::Error, "Multiple declarations in same scope.", func_def.declaration.token_info);
     } else {
         if (scope->find_symbol(name))
             issues_.emplace_back(Issue::Severity::Warning, "Shadow declaration.", func_def.declaration.token_info);
-        scope->add_symbol(name, FunctionSymbol{&func_def.declaration, (func_def.definition ? &func_def : nullptr)});
+        scope->add_symbol(name, FunctionSymbol{&func_def});
     }
 
     if (func_def.definition) {

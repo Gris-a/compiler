@@ -29,11 +29,15 @@ int main(int argc, char **argv) {
 
         for (const auto &issue: semantic.issues()) {
             auto pos = issue.info().pos;
-            std::cout << issue.message() << " at " << pos.line << ' ' << pos.pos << '\n';
+            std::cout << (issue.severity() == Parser::Semantic::Issue::Severity::Error ? "Error: " : "Warning: ")
+                      << issue.message() 
+                      << " at " << pos.line << ' ' << pos.pos << '\n';
 
         }
     } catch (Scanner::Position position) {
-        std::cout << position.line << ' ' << position.pos << '\n';
+        std::cout << "Error: "
+                  << "invalid syntax"
+                  << " at " << position.line << ' ' << position.pos << '\n';
         return EXIT_FAILURE;
     }
 

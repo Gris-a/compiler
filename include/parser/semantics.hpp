@@ -17,8 +17,7 @@ struct VariableSymbol {
 };
 
 struct FunctionSymbol {
-    const FunctionDeclaration *declaration;
-    const FunctionDefinition *definition;
+    const FunctionDefinition *function;
 };
 
 using Symbol = std::variant<VariableSymbol, FunctionSymbol>;
@@ -46,6 +45,9 @@ public:
     };
 
     const std::vector<Issue> &issues() const;
+
+    const Symbol *lookup_symbol(const Identifier &id) const;
+
 private:
     class Scope {
     public:
